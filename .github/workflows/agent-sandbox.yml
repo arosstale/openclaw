@@ -1,0 +1,47 @@
+name: Agent Sandbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_pattern:
+        description: 'Test file pattern (e.g. src/infra/heartbeat*.test.ts)'
+        required: false
+        default: ''
+      command:
+        description: 'Custom command to run'
+        required: false
+        default: 'pnpm test'
+      branch:
+        description: 'Branch to test'
+        required: false
+        default: 'main'
+
+jobs:
+  sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: |
+          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
+            pnpm vitest run --config vitest.unit.config.ts "${{ github.event.inputs.test_pattern }}"
+          else
+            ${{ github.event.inputs.command }}
+          fi
+
+      - name: Check types + lint + format
+        if: github.event.inputs.command == 'pnpm test' || github.event.inputs.command == ''
+        run: pnpm check
