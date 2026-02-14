@@ -317,11 +317,41 @@ function resolveTextMimeFromName(name?: string): string | undefined {
   return TEXT_EXT_MIME.get(ext);
 }
 
-function isBinaryMediaMime(mime?: string): boolean {
+/** Known text-like application/ MIME types that should NOT be treated as binary. */
+const TEXT_APPLICATION_MIMES = new Set([
+  "application/json",
+  "application/xml",
+  "application/x-yaml",
+  "application/yaml",
+  "application/javascript",
+  "application/x-sh",
+  "application/x-httpd-php",
+  "application/x-perl",
+  "application/x-python",
+  "application/x-ruby",
+  "application/sql",
+  "application/graphql",
+  "application/ld+json",
+  "application/xhtml+xml",
+  "application/x-ndjson",
+]);
+
+/** @internal Exported for unit testing only. */
+export function isBinaryMediaMime(mime?: string): boolean {
   if (!mime) {
     return false;
   }
-  return mime.startsWith("image/") || mime.startsWith("audio/") || mime.startsWith("video/");
+  if (mime.startsWith("image/") || mime.startsWith("audio/") || mime.startsWith("video/")) {
+    return true;
+  }
+  // Treat application/* as binary unless it is a known text-like type.
+  // This prevents ZIP-based formats (xlsx, docx, pptx) and other binary
+  // payloads from passing the looksLikeUtf8Text heuristic and being
+  // inlined as garbled text in the message body.
+  if (mime.startsWith("application/") && !TEXT_APPLICATION_MIMES.has(mime)) {
+    return true;
+  }
+  return false;
 }
 
 async function extractFileBlocks(params: {
