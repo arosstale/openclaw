@@ -998,6 +998,22 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         mode: 0o600,
       });
 
+      // Validate written file before committing (issue #19239)
+      const written = await deps.fs.promises.readFile(tmp, "utf-8");
+      if (written.length !== json.length) {
+        throw new Error(
+          `Config write truncation detected: expected ${json.length} bytes, wrote ${written.length} bytes`,
+        );
+      }
+      try {
+        deps.json5.parse(written);
+      } catch (parseErr) {
+        throw new Error(
+          `Config write corruption detected: written file is not valid JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`,
+          { cause: parseErr },
+        );
+      }
+
       if (deps.fs.existsSync(configPath)) {
         await rotateConfigBackups(configPath, deps.fs.promises);
         await deps.fs.promises.copyFile(configPath, `${configPath}.bak`).catch(() => {

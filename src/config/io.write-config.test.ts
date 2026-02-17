@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";
+import fsPromises from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { withTempHome } from "./home-env.test-harness.js";
@@ -13,8 +13,8 @@ describe("config io write", () => {
   it("persists caller changes onto resolved config without leaking runtime defaults", async () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify({ gateway: { port: 18789 } }, null, 2),
         "utf-8",
@@ -37,7 +37,7 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as Record<
+      const persisted = JSON.parse(await fsPromises.readFile(configPath, "utf-8")) as Record<
         string,
         unknown
       >;
@@ -54,8 +54,8 @@ describe("config io write", () => {
   it("preserves env var references when writing", async () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify(
           {
@@ -96,7 +96,7 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as {
+      const persisted = JSON.parse(await fsPromises.readFile(configPath, "utf-8")) as {
         agents: { defaults: { cliBackends: { codex: { env: { OPENAI_API_KEY: string } } } } };
         gateway: { port: number; auth: { mode: string } };
       };
@@ -113,8 +113,8 @@ describe("config io write", () => {
   it("does not reintroduce Slack/Discord legacy dm.policy defaults when writing", async () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify(
           {
@@ -158,7 +158,7 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as {
+      const persisted = JSON.parse(await fsPromises.readFile(configPath, "utf-8")) as {
         channels?: {
           discord?: { dm?: Record<string, unknown>; dmPolicy?: unknown };
           slack?: { dm?: Record<string, unknown>; dmPolicy?: unknown };
@@ -175,8 +175,8 @@ describe("config io write", () => {
   it("keeps env refs in arrays when appending entries", async () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify(
           {
@@ -226,7 +226,7 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as {
+      const persisted = JSON.parse(await fsPromises.readFile(configPath, "utf-8")) as {
         agents: {
           defaults: {
             cliBackends: {
@@ -248,8 +248,8 @@ describe("config io write", () => {
   it("logs an overwrite audit entry when replacing an existing config file", async () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify({ gateway: { port: 18789 } }, null, 2),
         "utf-8",
@@ -311,8 +311,8 @@ describe("config io write", () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
       const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify({ gateway: { port: 18789 } }, null, 2),
         "utf-8",
@@ -338,7 +338,10 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const lines = (await fs.readFile(auditPath, "utf-8")).trim().split("\n").filter(Boolean);
+      const lines = (await fsPromises.readFile(auditPath, "utf-8"))
+        .trim()
+        .split("\n")
+        .filter(Boolean);
       expect(lines.length).toBeGreaterThan(0);
       const last = JSON.parse(lines.at(-1) ?? "{}") as Record<string, unknown>;
       expect(last.source).toBe("config-io");
@@ -356,8 +359,8 @@ describe("config io write", () => {
     await withTempHome("openclaw-config-io-", async (home) => {
       const configPath = path.join(home, ".openclaw", "openclaw.json");
       const auditPath = path.join(home, ".openclaw", "logs", "config-audit.jsonl");
-      await fs.mkdir(path.dirname(configPath), { recursive: true });
-      await fs.writeFile(
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
         configPath,
         JSON.stringify({ gateway: { mode: "local" } }, null, 2),
         "utf-8",
@@ -386,11 +389,68 @@ describe("config io write", () => {
 
       await io.writeConfigFile(next);
 
-      const lines = (await fs.readFile(auditPath, "utf-8")).trim().split("\n").filter(Boolean);
+      const lines = (await fsPromises.readFile(auditPath, "utf-8"))
+        .trim()
+        .split("\n")
+        .filter(Boolean);
       const last = JSON.parse(lines.at(-1) ?? "{}") as Record<string, unknown>;
       expect(last.watchMode).toBe(true);
       expect(last.watchSession).toBe("watch-session-1");
       expect(last.watchCommand).toBe("gateway --force");
+    });
+  });
+
+  it("detects and rejects truncated config writes (issue #19239)", async () => {
+    await withTempHome("openclaw-config-io-", async (home) => {
+      const configPath = path.join(home, ".openclaw", "openclaw.json");
+      await fsPromises.mkdir(path.dirname(configPath), { recursive: true });
+      await fsPromises.writeFile(
+        configPath,
+        JSON.stringify({ gateway: { mode: "local" } }, null, 2),
+        "utf-8",
+      );
+
+      // Create a mock fs that simulates truncation on temp file writes
+      const mockFs = {
+        ...(await import("node:fs")),
+        promises: {
+          ...fsPromises,
+          writeFile: async (file: string, data: string | Buffer, options?: unknown) => {
+            // For temp files, write truncated content to simulate the issue
+            if (typeof file === "string" && file.includes(".tmp")) {
+              const content = typeof data === "string" ? data : data.toString();
+              const truncated = content.slice(0, Math.floor(content.length / 2));
+              return fsPromises.writeFile(file, truncated, options);
+            }
+            return fsPromises.writeFile(file, data, options);
+          },
+        },
+      };
+
+      const io = createConfigIO({
+        env: {} as NodeJS.ProcessEnv,
+        homedir: () => home,
+        logger: silentLogger,
+        fs: mockFs as typeof import("node:fs"),
+      });
+
+      const snapshot = await io.readConfigFileSnapshot();
+      expect(snapshot.valid).toBe(true);
+
+      const next = structuredClone(snapshot.config);
+      next.gateway = {
+        ...next.gateway,
+        port: 18790,
+      };
+
+      await expect(io.writeConfigFile(next)).rejects.toThrow(/truncation detected/);
+
+      // Verify original config is untouched
+      const stillExists = await fsPromises.access(configPath).then(
+        () => true,
+        () => false,
+      );
+      expect(stillExists).toBe(true);
     });
   });
 });
