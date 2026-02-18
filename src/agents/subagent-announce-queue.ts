@@ -39,6 +39,7 @@ type AnnounceQueueState = {
   dropPolicy: QueueDropPolicy;
   droppedCount: number;
   summaryLines: string[];
+  consecutiveErrors: number;
   send: (item: AnnounceQueueItem) => Promise<void>;
 };
 
@@ -68,6 +69,7 @@ export function resetAnnounceQueuesForTests() {
     queue.summaryLines.length = 0;
     queue.droppedCount = 0;
     queue.lastEnqueuedAt = 0;
+    queue.consecutiveErrors = 0;
   }
   ANNOUNCE_QUEUES.clear();
 }
@@ -102,6 +104,7 @@ function getAnnounceQueue(
     dropPolicy: settings.dropPolicy ?? "summarize",
     droppedCount: 0,
     summaryLines: [],
+    consecutiveErrors: 0,
     send,
   };
   ANNOUNCE_QUEUES.set(key, created);
@@ -126,6 +129,7 @@ function scheduleAnnounceDrain(key: string) {
               break;
             }
             await queue.send(next);
+            queue.consecutiveErrors = 0;
             queue.items.shift();
             continue;
           }
@@ -145,6 +149,7 @@ function scheduleAnnounceDrain(key: string) {
               break;
             }
             await queue.send(next);
+            queue.consecutiveErrors = 0;
             queue.items.shift();
             continue;
           }
@@ -161,6 +166,7 @@ function scheduleAnnounceDrain(key: string) {
             break;
           }
           await queue.send({ ...last, prompt });
+          queue.consecutiveErrors = 0;
           queue.items.splice(0, items.length);
           if (summary) {
             clearQueueSummaryState(queue);
@@ -175,6 +181,7 @@ function scheduleAnnounceDrain(key: string) {
             break;
           }
           await queue.send({ ...next, prompt: summaryPrompt });
+          queue.consecutiveErrors = 0;
           queue.items.shift();
           clearQueueSummaryState(queue);
           continue;
@@ -185,12 +192,22 @@ function scheduleAnnounceDrain(key: string) {
           break;
         }
         await queue.send(next);
+        queue.consecutiveErrors = 0;
         queue.items.shift();
       }
     } catch (err) {
-      // Keep items in queue and retry after debounce; avoid hot-loop retries.
-      queue.lastEnqueuedAt = Date.now();
-      defaultRuntime.error?.(`announce queue drain failed for ${key}: ${String(err)}`);
+      queue.consecutiveErrors += 1;
+      if (queue.consecutiveErrors >= 3) {
+        defaultRuntime.error?.(
+          `announce queue drain failed for ${key} after 3 consecutive errors, giving up: ${String(err)}`,
+        );
+        queue.items.length = 0;
+        queue.droppedCount = 0;
+        queue.summaryLines.length = 0;
+      } else {
+        queue.lastEnqueuedAt = Date.now() + queue.consecutiveErrors * queue.debounceMs;
+        defaultRuntime.error?.(`announce queue drain failed for ${key}: ${String(err)}`);
+      }
     } finally {
       queue.draining = false;
       if (queue.items.length === 0 && queue.droppedCount === 0) {

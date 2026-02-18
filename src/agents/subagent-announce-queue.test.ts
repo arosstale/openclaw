@@ -127,4 +127,54 @@ describe("subagent-announce-queue", () => {
     expect(sendPrompts[1]).toContain("Queued #2");
     expect(sendPrompts[1]).toContain("queued item two");
   });
+
+  it("applies backoff delay on consecutive failures", async () => {
+    const sendAttempts: number[] = [];
+    const send = vi.fn(async () => {
+      sendAttempts.push(Date.now());
+      throw new Error("persistent gateway failure");
+    });
+
+    enqueueAnnounce({
+      key: "announce:test:backoff",
+      item: {
+        prompt: "test message",
+        enqueuedAt: Date.now(),
+        sessionKey: "agent:main:telegram:dm:u1",
+      },
+      settings: { mode: "followup", debounceMs: 100 },
+      send,
+    });
+
+    await waitFor(() => sendAttempts.length >= 2, 3_000);
+    expect(sendAttempts.length).toBeGreaterThanOrEqual(2);
+
+    if (sendAttempts.length >= 2) {
+      const delayBetweenAttempts = sendAttempts[1] - sendAttempts[0];
+      expect(delayBetweenAttempts).toBeGreaterThanOrEqual(90);
+    }
+  });
+
+  it("gives up after 3 consecutive failures and clears queue", async () => {
+    const send = vi.fn(async () => {
+      throw new Error("persistent gateway failure");
+    });
+
+    enqueueAnnounce({
+      key: "announce:test:give-up",
+      item: {
+        prompt: "first message",
+        enqueuedAt: Date.now(),
+        sessionKey: "agent:main:telegram:dm:u1",
+      },
+      settings: { mode: "followup", debounceMs: 50 },
+      send,
+    });
+
+    await waitFor(() => send.mock.calls.length >= 3, 3_000);
+    expect(send).toHaveBeenCalledTimes(3);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(send).toHaveBeenCalledTimes(3);
+  });
 });
