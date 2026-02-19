@@ -371,7 +371,24 @@ function buildMessageToolDescription(options?: {
       // Always include "send" as a base action
       const allActions = new Set(["send", ...channelActions]);
       const actionList = Array.from(allActions).toSorted().join(", ");
-      return `${baseDescription} Current channel (${options.currentChannel}) supports: ${actionList}.`;
+      let desc = `${baseDescription} Current channel (${options.currentChannel}) supports: ${actionList}.`;
+      if (options.config?.channels) {
+        const otherChannels = Object.entries(options.config.channels)
+          .filter(([key, val]) => {
+            return (
+              key !== "defaults" &&
+              key !== options.currentChannel &&
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              val.enabled !== false
+            );
+          })
+          .map(([key]) => key)
+          .toSorted();
+        if (otherChannels.length > 0) {
+          desc += ` Other configured channels: ${otherChannels.join(", ")}.`;
+        }
+      }
+      return desc;
     }
   }
 
