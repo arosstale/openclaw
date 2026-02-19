@@ -181,4 +181,46 @@ describe("exec approvals", () => {
     await approvalSeen;
     expect(calls).toContain("exec.approval.request");
   });
+
+  it("respects explicit host=node when elevated mode is active", async () => {
+    const { callGatewayTool } = await import("./tools/gateway.js");
+    const calls: Array<{ method: string; params?: unknown }> = [];
+
+    vi.mocked(callGatewayTool).mockImplementation(async (method, _opts, params) => {
+      calls.push({ method, params });
+      if (method === "exec.approval.request") {
+        return { decision: "allow-once" };
+      }
+      if (method === "node.invoke") {
+        return { ok: true, payload: { success: true, stdout: "node output" } };
+      }
+      return { ok: true };
+    });
+
+    const { createExecTool } = await import("./bash-tools.exec.js");
+    const tool = createExecTool({
+      host: "gateway",
+      ask: "always",
+      security: "full",
+      approvalRunningNoticeMs: 0,
+      elevated: { enabled: true, allowed: true, defaultLevel: "full" },
+    });
+
+    const result = await tool.execute("call5", {
+      command: "echo ok",
+      elevated: true,
+      host: "node",
+    });
+
+    // When the user explicitly requests host=node with elevated=true,
+    // the tool should use node, not gateway (issue #20669)
+    await expect
+      .poll(() => calls.find((c) => c.method === "node.invoke"), {
+        timeout: 2000,
+        interval: 20,
+      })
+      .toBeDefined();
+
+    expect(calls.some((c) => c.method === "node.invoke")).toBe(true);
+  });
 });

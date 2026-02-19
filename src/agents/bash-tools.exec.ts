@@ -258,7 +258,7 @@ export function createExecTool(
             `configure tools.exec.host=${renderExecHostLabel(configuredHost)} to allow).`,
         );
       }
-      if (elevatedRequested) {
+      if (elevatedRequested && !requestedHost) {
         host = "gateway";
       }
 
