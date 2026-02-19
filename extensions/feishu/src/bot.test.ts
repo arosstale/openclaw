@@ -116,6 +116,79 @@ describe("handleFeishuMessage command authorization", () => {
     );
   });
 
+  it("uses root_id as replyToMessageId if present (topic groups)", async () => {
+    const cfg: ClawdbotConfig = {
+      channels: {
+        feishu: {
+          groupPolicy: "open",
+          requireMention: false,
+        },
+      },
+    } as ClawdbotConfig;
+
+    const event: FeishuMessageEvent = {
+      sender: {
+        sender_id: { open_id: "user1" },
+      },
+      message: {
+        message_id: "msg-child",
+        root_id: "msg-root",
+        chat_id: "group-topic",
+        chat_type: "group",
+        message_type: "text",
+        content: JSON.stringify({ text: "hello" }),
+      },
+    };
+
+    await handleFeishuMessage({
+      cfg,
+      event,
+      runtime: { log: vi.fn(), error: vi.fn() } as RuntimeEnv,
+    });
+
+    expect(mockCreateFeishuReplyDispatcher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replyToMessageId: "msg-root",
+      }),
+    );
+  });
+
+  it("uses message_id as replyToMessageId if root_id is missing", async () => {
+    const cfg: ClawdbotConfig = {
+      channels: {
+        feishu: {
+          groupPolicy: "open",
+          requireMention: false,
+        },
+      },
+    } as ClawdbotConfig;
+
+    const event: FeishuMessageEvent = {
+      sender: {
+        sender_id: { open_id: "user1" },
+      },
+      message: {
+        message_id: "msg-standalone",
+        chat_id: "group-normal",
+        chat_type: "group",
+        message_type: "text",
+        content: JSON.stringify({ text: "hello" }),
+      },
+    };
+
+    await handleFeishuMessage({
+      cfg,
+      event,
+      runtime: { log: vi.fn(), error: vi.fn() } as RuntimeEnv,
+    });
+
+    expect(mockCreateFeishuReplyDispatcher).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replyToMessageId: "msg-standalone",
+      }),
+    );
+  });
+
   it("reads pairing allow store for non-command DMs when dmPolicy is pairing", async () => {
     mockShouldComputeCommandAuthorized.mockReturnValue(false);
     mockReadAllowFromStore.mockResolvedValue(["ou-attacker"]);
