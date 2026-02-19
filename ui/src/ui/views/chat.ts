@@ -534,7 +534,9 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
         startedAt: props.streamStartedAt ?? Date.now(),
       });
     } else {
-      items.push({ kind: "reading-indicator", key });
+      // Chrome 145 regression: force a key change to teardown the typing indicator
+      // completely before rendering the message bubble, preventing animation conflicts.
+      items.push({ kind: "reading-indicator", key: `${key}:typing` });
     }
   }
 
