@@ -512,6 +512,16 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     [createDiscordGatewayPlugin({ discordConfig: discordCfg, runtime })],
   );
 
+  // Attach early error handler to prevent unhandled EventEmitter errors (e.g., 4014)
+  // during awaits below. Carbon's GatewayPlugin can emit fatal errors before we reach
+  // the proper error handling in waitForDiscordGatewayStop.
+  const gateway = client.getPlugin<GatewayPlugin>("gateway");
+  const earlyGatewayEmitter = getDiscordGatewayEmitter(gateway);
+  const earlyErrorHandler = (err: unknown) => {
+    runtime.error?.(danger(`discord gateway error during initialization: ${String(err)}`));
+  };
+  earlyGatewayEmitter?.on("error", earlyErrorHandler);
+
   await deployDiscordCommands({ client, runtime, enabled: nativeEnabled });
 
   const logger = createSubsystemLogger("discord/monitor");
@@ -591,7 +601,9 @@ export async function monitorDiscordProvider(opts: MonitorDiscordOpts = {}) {
     await execApprovalsHandler.start();
   }
 
-  const gateway = client.getPlugin<GatewayPlugin>("gateway");
+  // Remove early error handler before attaching the proper handler
+  earlyGatewayEmitter?.removeListener("error", earlyErrorHandler);
+
   if (gateway) {
     registerGateway(account.accountId, gateway);
   }

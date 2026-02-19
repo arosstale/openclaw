@@ -1,6 +1,23 @@
 import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
-import { waitForDiscordGatewayStop } from "./monitor.gateway.js";
+import { getDiscordGatewayEmitter, waitForDiscordGatewayStop } from "./monitor.gateway.js";
+
+describe("getDiscordGatewayEmitter", () => {
+  it("extracts emitter from gateway plugin", () => {
+    const emitter = new EventEmitter();
+    const gateway = { emitter };
+    expect(getDiscordGatewayEmitter(gateway)).toBe(emitter);
+  });
+
+  it("returns undefined for gateway without emitter", () => {
+    const gateway = {};
+    expect(getDiscordGatewayEmitter(gateway)).toBeUndefined();
+  });
+
+  it("returns undefined for undefined gateway", () => {
+    expect(getDiscordGatewayEmitter(undefined)).toBeUndefined();
+  });
+});
 
 describe("waitForDiscordGatewayStop", () => {
   it("resolves on abort and disconnects gateway", async () => {
