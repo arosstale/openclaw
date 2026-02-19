@@ -814,18 +814,16 @@ export class QmdMemoryManager implements MemorySearchManager {
       return cached;
     }
     const db = this.ensureDb();
-    let row: { collection: string; path: string } | undefined;
+    let rows: { collection: string; path: string }[];
     try {
       const exact = db
-        .prepare("SELECT collection, path FROM documents WHERE hash = ? AND active = 1 LIMIT 1")
-        .get(normalized) as { collection: string; path: string } | undefined;
-      row = exact;
-      if (!row) {
-        row = db
-          .prepare(
-            "SELECT collection, path FROM documents WHERE hash LIKE ? AND active = 1 LIMIT 1",
-          )
-          .get(`${normalized}%`) as { collection: string; path: string } | undefined;
+        .prepare("SELECT collection, path FROM documents WHERE hash = ? AND active = 1")
+        .all(normalized) as { collection: string; path: string }[];
+      rows = exact;
+      if (rows.length === 0) {
+        rows = db
+          .prepare("SELECT collection, path FROM documents WHERE hash LIKE ? AND active = 1")
+          .all(`${normalized}%`) as { collection: string; path: string }[];
       }
     } catch (err) {
       if (this.isSqliteBusyError(err)) {
@@ -834,15 +832,19 @@ export class QmdMemoryManager implements MemorySearchManager {
       }
       throw err;
     }
-    if (!row) {
+    if (rows.length === 0) {
       return null;
     }
-    const location = this.toDocLocation(row.collection, row.path);
-    if (!location) {
-      return null;
+    // Iterate through all rows until we find one with a valid collection
+    for (const row of rows) {
+      const location = this.toDocLocation(row.collection, row.path);
+      if (location) {
+        this.docPathCache.set(normalized, location);
+        return location;
+      }
     }
-    this.docPathCache.set(normalized, location);
-    return location;
+    // All rows had stale/unknown collections
+    return null;
   }
 
   private extractSnippetLines(snippet: string): { startLine: number; endLine: number } {
