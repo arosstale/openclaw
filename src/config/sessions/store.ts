@@ -199,6 +199,27 @@ export function loadSessionStore(
     }
   }
 
+  // Best-effort migration: agent:main key prefix → agent:{defaultAgentId}
+  // This occurs when a named agent is added as the default, replacing the implicit "main".
+  try {
+    const { agents: { list = [] } = {} } = loadConfig();
+    const defId = list.find((a) => a?.default)?.id || list[0]?.id;
+    // Only migrate if we have a new default and 'main' isn't explicitly kept
+    if (defId && defId !== "main" && !list.some((a) => a.id === "main")) {
+      for (const [key, entry] of Object.entries(store)) {
+        if (key.startsWith("agent:main:")) {
+          const newKey = key.replace("agent:main:", `agent:${defId}:`);
+          if (!store[newKey]) {
+            store[newKey] = entry;
+            delete store[key];
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore config load errors during migration
+  }
+
   // Cache the result if caching is enabled
   if (!opts.skipCache && isSessionStoreCacheEnabled()) {
     SESSION_STORE_CACHE.set(storePath, {
