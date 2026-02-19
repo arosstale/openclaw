@@ -21,7 +21,7 @@ export async function resolveDeliveryTarget(
     to?: string;
   },
 ): Promise<{
-  channel: Exclude<OutboundChannel, "none">;
+  channel: OutboundChannel;
   to?: string;
   accountId?: string;
   threadId?: string | number;
@@ -51,7 +51,7 @@ export async function resolveDeliveryTarget(
       const selection = await resolveMessageChannelSelection({ cfg });
       fallbackChannel = selection.channel;
     } catch {
-      fallbackChannel = preliminary.lastChannel ?? DEFAULT_CHAT_CHANNEL;
+      fallbackChannel = preliminary.lastChannel;
     }
   }
 
@@ -66,7 +66,7 @@ export async function resolveDeliveryTarget(
       })
     : preliminary;
 
-  const channel = resolved.channel ?? fallbackChannel ?? DEFAULT_CHAT_CHANNEL;
+  const channel = resolved.channel ?? fallbackChannel ?? "none";
   const mode = resolved.mode as "explicit" | "implicit";
   const toCandidate = resolved.to;
 

@@ -565,7 +565,8 @@ export async function runCronIsolatedAgentTurn(params: {
       sessionKey: agentSessionKey,
       verboseLevel: resolvedVerboseLevel,
     });
-    const messageChannel = resolvedDelivery.channel;
+    const messageChannel =
+      resolvedDelivery.channel === "none" ? undefined : resolvedDelivery.channel;
     const fallbackResult = await runWithModelFallback({
       cfg: cfgWithAgentDefaults,
       provider,
@@ -706,6 +707,11 @@ export async function runCronIsolatedAgentTurn(params: {
       return withRunSession({ status: "ok", summary, outputText });
     }
     if (!resolvedDelivery.to) {
+      if (resolvedDelivery.channel === "none") {
+        logWarn(`[cron:${params.job.id}] Delivery skipped: no valid channel found.`);
+        return withRunSession({ status: "ok", summary, outputText });
+      }
+
       const message = "cron delivery target is missing";
       if (!deliveryBestEffort) {
         return withRunSession({
