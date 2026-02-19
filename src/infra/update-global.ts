@@ -86,6 +86,10 @@ export async function detectGlobalInstallManagerForRoot(
       if (path.resolve(expected) === path.resolve(pkgReal)) {
         return manager;
       }
+
+      if (manager === "pnpm" && pkgReal.startsWith(path.dirname(globalReal) + path.sep)) {
+        return manager;
+      }
     }
   }
 
