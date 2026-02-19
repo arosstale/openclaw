@@ -8,6 +8,15 @@ describe("memory hybrid helpers", () => {
     expect(buildFtsQuery("   ")).toBeNull();
   });
 
+  it("buildFtsQuery handles CJK characters by splitting runs", () => {
+    // Basic CJK
+    expect(buildFtsQuery("你好")).toBe('"你" AND "好"');
+    // Mixed with latin (with explicit spacing around CJK block)
+    expect(buildFtsQuery("hello 你好 world")).toBe('"hello" AND "你" AND "好" AND "world"');
+    // Multiple CJK runs
+    expect(buildFtsQuery("東京 tokyo 大阪")).toBe('"東" AND "京" AND "tokyo" AND "大" AND "阪"');
+  });
+
   it("bm25RankToScore is monotonic and clamped", () => {
     expect(bm25RankToScore(0)).toBeCloseTo(1);
     expect(bm25RankToScore(1)).toBeCloseTo(0.5);

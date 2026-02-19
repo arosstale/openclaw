@@ -20,10 +20,14 @@ export type HybridKeywordResult = {
   textScore: number;
 };
 
+export function splitCjkRuns(text: string): string {
+  return text.replace(/([\u3040-\u9FFF])(?=[\u3040-\u9FFF])/g, "$1 ");
+}
+
 export function buildFtsQuery(raw: string): string | null {
   const tokens =
-    raw
-      .match(/[A-Za-z0-9_]+/g)
+    splitCjkRuns(raw)
+      .match(/[A-Za-z0-9_\u3040-\u9FFF]+/g)
       ?.map((t) => t.trim())
       .filter(Boolean) ?? [];
   if (tokens.length === 0) {
