@@ -72,6 +72,13 @@ export {
   waitForever,
 };
 
+export {
+  initSubagentRegistry,
+  registerSubagentRun,
+  resetSubagentRegistryForTests,
+  listSubagentRunsForRequester,
+} from "./agents/subagent-registry.js";
+
 const isMain = isMainModule({
   currentFile: fileURLToPath(import.meta.url),
 });
