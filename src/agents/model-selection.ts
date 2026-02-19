@@ -329,6 +329,33 @@ export function buildAllowedModelSet(params: {
     allowedKeys.add(defaultKey);
   }
 
+  // Include models from agents.defaults.model.fallbacks in the allowlist
+  const modelFallbacks = (() => {
+    const model = params.cfg.agents?.defaults?.model as
+      | { fallbacks?: string[] }
+      | string
+      | undefined;
+    if (model && typeof model === "object") {
+      return model.fallbacks ?? [];
+    }
+    return [];
+  })();
+  for (const raw of modelFallbacks) {
+    const parsed = parseModelRef(String(raw ?? ""), params.defaultProvider);
+    if (!parsed) {
+      continue;
+    }
+    const key = modelKey(parsed.provider, parsed.model);
+    const providerKey = normalizeProviderId(parsed.provider);
+    if (isCliProvider(parsed.provider, params.cfg)) {
+      allowedKeys.add(key);
+    } else if (catalogKeys.has(key)) {
+      allowedKeys.add(key);
+    } else if (configuredProviders[providerKey] != null) {
+      allowedKeys.add(key);
+    }
+  }
+
   const allowedCatalog = params.catalog.filter((entry) =>
     allowedKeys.has(modelKey(entry.provider, entry.id)),
   );
