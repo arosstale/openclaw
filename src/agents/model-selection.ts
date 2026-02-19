@@ -307,7 +307,8 @@ export function buildAllowedModelSet(params: {
 
   const allowedKeys = new Set<string>();
   const configuredProviders = (params.cfg.models?.providers ?? {}) as Record<string, unknown>;
-  for (const raw of rawAllowlist) {
+  const fallbacks = params.cfg.agents?.defaults?.model?.fallbacks;
+  for (const raw of [...rawAllowlist, ...(fallbacks ?? [])]) {
     const parsed = parseModelRef(String(raw), params.defaultProvider);
     if (!parsed) {
       continue;

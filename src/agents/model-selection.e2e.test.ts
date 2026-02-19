@@ -7,7 +7,9 @@ import {
   buildModelAliasIndex,
   normalizeProviderId,
   modelKey,
+  buildAllowedModelSet,
 } from "./model-selection.js";
+import type { ModelCatalogEntry } from "./model-catalog.js";
 
 describe("model-selection", () => {
   describe("normalizeProviderId", () => {
@@ -168,6 +170,46 @@ describe("model-selection", () => {
         defaultModel: "gpt-4",
       });
       expect(result).toEqual({ provider: "openai", model: "gpt-4" });
+    });
+  });
+
+  describe("buildAllowedModelSet", () => {
+    it("should include fallback models in allowed keys", () => {
+      const cfg: Partial<OpenClawConfig> = {
+        agents: {
+          defaults: {
+            models: {
+              "anthropic/claude-3-5-sonnet": { alias: "fast" },
+            },
+            model: {
+              primary: "anthropic/claude-3-5-sonnet",
+              fallbacks: ["anthropic/fallback-model"],
+            },
+          },
+        },
+      };
+
+      const catalog: ModelCatalogEntry[] = [
+        {
+          provider: "anthropic",
+          id: "claude-3-5-sonnet",
+          name: "Claude 3.5 Sonnet",
+        },
+        {
+          provider: "anthropic",
+          id: "fallback-model",
+          name: "Fallback Model",
+        },
+      ];
+
+      const result = buildAllowedModelSet({
+        cfg: cfg as OpenClawConfig,
+        catalog,
+        defaultProvider: "anthropic",
+      });
+
+      expect(result.allowedKeys.has("anthropic/claude-3-5-sonnet")).toBe(true);
+      expect(result.allowedKeys.has("anthropic/fallback-model")).toBe(true);
     });
   });
 });
