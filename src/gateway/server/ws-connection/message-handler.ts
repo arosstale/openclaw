@@ -661,7 +661,15 @@ export function attachGatewayWsMessageHandler(params: {
           return;
         }
 
-        const skipPairing = allowControlUiBypass && sharedAuthOk;
+        const isInternalClient =
+          connectParams.client.id === GATEWAY_CLIENT_IDS.GATEWAY_CLIENT ||
+          connectParams.client.id === GATEWAY_CLIENT_IDS.CLI ||
+          connectParams.client.id === GATEWAY_CLIENT_IDS.NODE_HOST;
+        // Trusted internal clients (cron/tools, CLI, node-host) providing a valid
+        // gateway token/password are authorized administrators. They should not
+        // require an additional device pairing step, which breaks Docker/headless
+        // flows where device identity is ephemeral or not yet paired.
+        const skipPairing = (allowControlUiBypass || isInternalClient) && sharedAuthOk;
         if (device && devicePublicKey && !skipPairing) {
           const requirePairing = async (reason: string, _paired?: { deviceId: string }) => {
             const pairing = await requestDevicePairing({
