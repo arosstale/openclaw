@@ -4,6 +4,7 @@ import type { ReplyPayload } from "../../auto-reply/types.js";
 import type { MarkdownTableMode } from "../../config/types.base.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { convertMarkdownTables } from "../../markdown/tables.js";
+import { sleep } from "../../utils.js";
 import { chunkDiscordTextWithMode } from "../chunk.js";
 import { sendMessageDiscord } from "../send.js";
 
@@ -53,6 +54,7 @@ export async function deliverDiscordReply(params: {
           accountId: params.accountId,
           replyTo: isFirstChunk ? replyTo : undefined,
         });
+        await sleep(1000);
         isFirstChunk = false;
       }
       continue;
@@ -69,6 +71,7 @@ export async function deliverDiscordReply(params: {
       accountId: params.accountId,
       replyTo,
     });
+    await sleep(1000);
     for (const extra of mediaList.slice(1)) {
       await sendMessageDiscord(params.target, "", {
         token: params.token,
@@ -76,6 +79,7 @@ export async function deliverDiscordReply(params: {
         mediaUrl: extra,
         accountId: params.accountId,
       });
+      await sleep(1000);
     }
   }
 }
