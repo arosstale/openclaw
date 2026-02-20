@@ -470,12 +470,16 @@ export async function prepareSlackMessage(params: {
   let threadSessionPreviousTimestamp: number | undefined;
   let threadLabel: string | undefined;
   let threadStarterMedia: Awaited<ReturnType<typeof resolveSlackMedia>> = null;
+  let threadStarter: Awaited<ReturnType<typeof resolveSlackThreadStarter>> = null;
+
   if (isThreadReply && threadTs) {
     const starter = await resolveSlackThreadStarter({
       channelId: message.channel,
       threadTs,
       client: ctx.app.client,
     });
+    threadStarter = starter;
+
     if (starter?.text) {
       // Keep thread starter as raw text; metadata is provided out-of-band in the system prompt.
       threadStarterBody = starter.text;
@@ -562,7 +566,7 @@ export async function prepareSlackMessage(params: {
   const effectiveMedia = media ?? threadStarterMedia;
   const firstMedia = effectiveMedia?.[0];
 
-  const inboundHistory =
+  let inboundHistory =
     isRoomish && ctx.historyLimit > 0
       ? (ctx.channelHistories.get(historyKey) ?? []).map((entry) => ({
           sender: entry.sender,
@@ -570,6 +574,25 @@ export async function prepareSlackMessage(params: {
           timestamp: entry.timestamp,
         }))
       : undefined;
+
+  if (
+    ctx.threadInheritParent &&
+    isThreadReply &&
+    threadStarter?.text &&
+    (!inboundHistory || inboundHistory.length === 0)
+  ) {
+    const starterUser = threadStarter.userId
+      ? await ctx.resolveUserName(threadStarter.userId)
+      : null;
+    const starterName = starterUser?.name ?? "unknown";
+    inboundHistory = [
+      {
+        sender: starterName,
+        body: threadStarter.text,
+        timestamp: threadStarter.ts ? Math.round(Number(threadStarter.ts) * 1000) : undefined,
+      },
+    ];
+  }
 
   const ctxPayload = finalizeInboundContext({
     Body: combinedBody,
