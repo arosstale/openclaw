@@ -284,6 +284,20 @@ export async function doctorCommand(
   const shouldWriteConfig = prompter.shouldRepair || configResult.shouldWriteConfig;
   if (shouldWriteConfig) {
     cfg = applyWizardMetadata(cfg, { command: "doctor", mode: resolveMode(cfg) });
+
+    // Fix: prevent teamId runtime state from being persisted to config
+    if (cfg.channels?.slack) {
+      delete (cfg.channels.slack as { teamId?: string }).teamId;
+      const accounts = cfg.channels.slack.accounts;
+      if (accounts) {
+        for (const account of Object.values(accounts)) {
+          if (account) {
+            delete (account as { teamId?: string }).teamId;
+          }
+        }
+      }
+    }
+
     await writeConfigFile(cfg);
     logConfigUpdated(runtime);
     const backupPath = `${CONFIG_PATH}.bak`;

@@ -138,6 +138,20 @@ export function registerSlackChannelEvents(params: { ctx: SlackMonitorContext })
             oldChannelId,
             newChannelId,
           });
+
+          // Fix: prevent teamId runtime state from being persisted to config
+          if (currentConfig.channels?.slack) {
+            delete (currentConfig.channels.slack as { teamId?: string }).teamId;
+            const accounts = currentConfig.channels.slack.accounts;
+            if (accounts) {
+              for (const account of Object.values(accounts)) {
+                if (account) {
+                  delete (account as { teamId?: string }).teamId;
+                }
+              }
+            }
+          }
+
           await writeConfigFile(currentConfig);
           ctx.runtime.log?.(warn("[slack] Channel config migrated and saved successfully."));
         } else if (migration.skippedExisting) {
