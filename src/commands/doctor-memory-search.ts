@@ -5,6 +5,7 @@ import { resolveApiKeyForProvider } from "../agents/model-auth.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { resolveMemoryBackendConfig } from "../memory/backend-config.js";
+import { DEFAULT_LOCAL_MODEL } from "../memory/embeddings.js";
 import { note } from "../terminal/note.js";
 import { resolveUserPath } from "../utils.js";
 
@@ -42,8 +43,8 @@ export async function noteMemorySearchHealth(
   // If a specific provider is configured (not "auto"), check only that one.
   if (resolved.provider !== "auto") {
     if (resolved.provider === "local") {
-      if (hasLocalEmbeddings(resolved.local)) {
-        return; // local model file exists
+      if (hasLocalEmbeddings(resolved.local, { useDefaultModel: true })) {
+        return; // local model file exists (or default hf: model will be auto-downloaded)
       }
       note(
         [
@@ -135,8 +136,15 @@ export async function noteMemorySearchHealth(
   );
 }
 
-function hasLocalEmbeddings(local: { modelPath?: string }): boolean {
-  const modelPath = local.modelPath?.trim();
+function hasLocalEmbeddings(
+  local: { modelPath?: string },
+  opts?: { useDefaultModel?: boolean },
+): boolean {
+  // When provider is explicitly "local" and no modelPath is configured,
+  // the runtime falls back to DEFAULT_LOCAL_MODEL (an hf: reference that
+  // node-llama-cpp auto-downloads). Use the same fallback so doctor
+  // doesn't report a false-positive "no local model file was found".
+  const modelPath = local.modelPath?.trim() || (opts?.useDefaultModel ? DEFAULT_LOCAL_MODEL : "");
   if (!modelPath) {
     return false;
   }
