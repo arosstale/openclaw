@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { emitAgentEvent } from "../infra/agent-events.js";
 import {
@@ -225,7 +226,9 @@ describe("startAcpSpawnParentStreamRelay", () => {
       childSessionKey: "agent:codex:acp:child-1",
     });
 
-    expect(resolved).toBe("/tmp/openclaw/agents/codex/sessions/sess-123.acp-stream.jsonl");
+    expect(resolved).toBe(
+      path.resolve("/tmp/openclaw/agents/codex/sessions/sess-123.acp-stream.jsonl"),
+    );
     expect(readAcpSessionEntryMock).toHaveBeenCalledWith({
       sessionKey: "agent:codex:acp:child-1",
     });

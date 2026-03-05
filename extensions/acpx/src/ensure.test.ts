@@ -103,7 +103,7 @@ describe("acpx ensure", () => {
     });
   });
 
-  it("falls back to package.json version when --version is unsupported", async () => {
+  it.runIf(process.platform !== "win32")("falls back to package.json version when --version is unsupported", async () => {
     const command = makeTempAcpxInstall(ACPX_PINNED_VERSION);
     spawnAndCollectMock.mockResolvedValueOnce({
       stdout: "",

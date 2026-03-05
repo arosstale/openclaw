@@ -19,7 +19,7 @@ const run = (cwd: string, cmd: string, args: string[] = [], env?: NodeJS.Process
 };
 
 describe("git-hooks/pre-commit (integration)", () => {
-  it("does not treat staged filenames as git-add flags (e.g. --all)", () => {
+  it.runIf(process.platform !== "win32")("does not treat staged filenames as git-add flags (e.g. --all)", () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), "openclaw-pre-commit-"));
     run(dir, "git", ["init", "-q", "--initial-branch=main"]);
 

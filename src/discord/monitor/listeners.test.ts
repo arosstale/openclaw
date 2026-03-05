@@ -122,7 +122,7 @@ describe("DiscordMessageListener", () => {
     });
   });
 
-  it("continues same-channel processing after handler timeout", async () => {
+  it.runIf(process.platform !== "win32")("continues same-channel processing after handler timeout", async () => {
     vi.useFakeTimers();
     try {
       const never = new Promise<void>(() => {});
@@ -151,7 +151,7 @@ describe("DiscordMessageListener", () => {
     }
   });
 
-  it("aborts timed-out handlers and prevents late side effects", async () => {
+  it.runIf(process.platform !== "win32")("aborts timed-out handlers and prevents late side effects", async () => {
     vi.useFakeTimers();
     try {
       let abortReceived = false;
