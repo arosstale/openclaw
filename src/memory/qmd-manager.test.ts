@@ -1862,7 +1862,7 @@ describe("QmdMemoryManager", () => {
     await manager.close();
   });
 
-  it("blocks non-markdown or symlink reads for qmd paths", async () => {
+  it.runIf(process.platform !== "win32")("blocks non-markdown or symlink reads for qmd paths", async () => {
     const { manager } = await createManager();
 
     const textPath = path.join(workspaceDir, "secret.txt");

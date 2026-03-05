@@ -87,16 +87,20 @@ describe("media server", () => {
         await writeMediaFile("file2", "hello");
       },
     },
-    {
-      testName: "blocks symlink escaping outside media dir",
-      mediaPath: "link-out",
-      setup: async () => {
-        const target = path.join(process.cwd(), "package.json"); // outside MEDIA_DIR
-        const link = path.join(MEDIA_DIR, "link-out");
-        await fs.symlink(target, link);
-      },
-    },
-  ] as const)("$testName", async (testCase) => {
+    ...(process.platform !== "win32"
+      ? [
+          {
+            testName: "blocks symlink escaping outside media dir",
+            mediaPath: "link-out",
+            setup: async () => {
+              const target = path.join(process.cwd(), "package.json"); // outside MEDIA_DIR
+              const link = path.join(MEDIA_DIR, "link-out");
+              await fs.symlink(target, link);
+            },
+          },
+        ]
+      : []),
+  ] as const)("$testName", async (testCase: { testName: string; mediaPath: string; setup?: () => Promise<void> }) => {
     await testCase.setup?.();
     const res = await fetch(mediaUrl(testCase.mediaPath));
     expect(res.status).toBe(400);

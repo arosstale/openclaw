@@ -217,7 +217,7 @@ describe("handleControlUiHttpRequest", () => {
     }
   });
 
-  it("rejects avatar symlink paths from resolver", async () => {
+  it.runIf(process.platform !== "win32")("rejects avatar symlink paths from resolver", async () => {
     const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-http-link-"));
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-avatar-http-outside-"));
     try {
@@ -239,7 +239,7 @@ describe("handleControlUiHttpRequest", () => {
     }
   });
 
-  it("rejects symlinked assets that resolve outside control-ui root", async () => {
+  it.runIf(process.platform !== "win32")("rejects symlinked assets that resolve outside control-ui root", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
         const assetsDir = path.join(tmp, "assets");
@@ -266,7 +266,7 @@ describe("handleControlUiHttpRequest", () => {
     });
   });
 
-  it("allows symlinked assets that resolve inside control-ui root", async () => {
+  it.runIf(process.platform !== "win32")("allows symlinked assets that resolve inside control-ui root", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
         const { assetsDir, filePath } = await writeAssetFile(tmp, "actual.txt", "inside-ok\n");
@@ -303,7 +303,7 @@ describe("handleControlUiHttpRequest", () => {
     });
   });
 
-  it("rejects symlinked SPA fallback index.html outside control-ui root", async () => {
+  it.runIf(process.platform !== "win32")("rejects symlinked SPA fallback index.html outside control-ui root", async () => {
     await withControlUiRoot({
       fn: async (tmp) => {
         const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-ui-index-outside-"));
@@ -439,7 +439,7 @@ describe("handleControlUiHttpRequest", () => {
     });
   });
 
-  it("rejects symlink escape attempts under basePath routes", async () => {
+  it.runIf(process.platform !== "win32")("rejects symlink escape attempts under basePath routes", async () => {
     await withBasePathRootFixture({
       siblingDir: "outside",
       fn: async ({ root, sibling }) => {

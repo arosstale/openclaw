@@ -121,7 +121,7 @@ describe("stageSandboxMedia", () => {
     });
   });
 
-  it("blocks destination symlink escapes when staging into sandbox workspace", async () => {
+  it.runIf(process.platform !== "win32")("blocks destination symlink escapes when staging into sandbox workspace", async () => {
     await withSandboxMediaTempHome("openclaw-triggers-", async (home) => {
       const { cfg, workspaceDir, sandboxDir } = setupSandboxWorkspace(home);
 
